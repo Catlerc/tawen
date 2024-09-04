@@ -1,4 +1,4 @@
-
+import {EnergyCollectionActivity} from "./Activity/Activity";
 
 class Loop {
   start(){

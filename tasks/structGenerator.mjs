@@ -4,8 +4,8 @@ import fs from 'fs';
 import path from 'path';
 
 
-const domainFile = "./src/_domain.ts"
-const domainDestinationFile = "./src/domain.ts"
+const domainFile = "./src/domain.ts"
+const domainDestinationFile = "./src/gen/domain.ts"
 
 //parse
 
@@ -33,9 +33,6 @@ ts.forEachChild(sourceFile, (node) => {
             const memberName = member.name.escapedText
             const memberType = typeChecker.getTypeAtLocation(member)
             const memberTypeStr = typeChecker.typeToString(memberType)
-            // console.log(member.type)
-            // ts.isTypeOfExpression(memberType.type)
-
 
             members.push({
                 name: memberName,

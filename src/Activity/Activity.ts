@@ -6,7 +6,7 @@ abstract class Activity {
   {}
 }
 
-class EnergyCollectionActivity extends Activity {
+export class EnergyCollectionActivity extends Activity {
 
 
 }

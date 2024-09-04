@@ -4,8 +4,11 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "gen": "node src/structGenerator.mjs"
+    "build": "npm run gen & npm run prepare & tsc",
+
+    "prepare": "node tasks/prepareBuild.mjs",
+    "gen": "node tasks/structGenerator.mjs",
+    "cleanup": "node tasks/cleanup.mjs"
   },
   "devDependencies": {
     "@types/screeps": "3.3.8",
@@ -13,13 +16,6 @@
     "typescript": "5.5.4"
   },
   "private": true,
-  "compilerOptions": {
-    "plugins": [
-      {
-        "transform": "ts-macros"
-      }
-    ]
-  },
   "dependencies": {
     "remove": "^0.1.5"
   }

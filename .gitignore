@@ -12,3 +12,4 @@ yarn-error.log*
 /dist
 .idea
 package-lock.json
+/_tmp
