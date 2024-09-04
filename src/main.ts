@@ -1,4 +1,4 @@
-import {Kek, Lol} from "./gen/domain";
+import realLoop from "./Loop";
 
-
-console.log("kekw")
+realLoop.start()
+export const loop = realLoop.update
