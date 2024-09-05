@@ -101,17 +101,22 @@ for (const fileName of fileNames) {
   // SAVE
   const oldFile = readFile(fileName)
   const insert = GEN_COMMENT_START + "\n" + generated + "\n" + GEN_COMMENT_END
-
   const startIndex = oldFile.indexOf(GEN_COMMENT_START)
   const endIndexRaw = oldFile.indexOf(GEN_COMMENT_END)
   const endIndex = endIndexRaw === -1 ? oldFile.length : endIndexRaw + GEN_COMMENT_END.length
   let generatedFileContent
   if (startIndex >= 0) {
-    generatedFileContent = replaceFromTo(oldFile, oldFile.indexOf(GEN_COMMENT_START), endIndex, insert)
+    if (interfaces.length === 0)
+      generatedFileContent = replaceFromTo(oldFile, startIndex, endIndex, "")
+    else
+      generatedFileContent = replaceFromTo(oldFile, startIndex, endIndex, insert)
   } else {
-    generatedFileContent = oldFile + "\n" + insert
+    if (interfaces.length === 0)
+      generatedFileContent = oldFile
+    else
+      generatedFileContent = oldFile + "\n" + insert
   }
 
-  if (interfaces.length > 0)
-    writeFile(fileName, generatedFileContent)
+
+  writeFile(fileName, generatedFileContent)
 }
