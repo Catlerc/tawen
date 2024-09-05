@@ -47,6 +47,7 @@ for (const fileName of fileNames) {
   ts.forEachChild(sourceFile, (node) => {
 
     if (ts.isInterfaceDeclaration(node) && isDataTypeForInterface(node)) {
+
       const interfaceName = node.name.escapedText
       let members = []
       for (const member of node.members) {
@@ -60,8 +61,11 @@ for (const fileName of fileNames) {
           name: memberName, type: memberTypeStr, isDataType: isDataTypeFlag, isArray: isArrayFlag
         })
       }
+
+      const isExport = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0
+
       interfaces.push({
-        name: interfaceName, members: members
+        name: interfaceName, members: members, isExport: isExport
       })
     }
   })
@@ -73,6 +77,8 @@ for (const fileName of fileNames) {
   for (const intr of interfaces) {
     const name = intr.name
     const members = intr.members
+    if (intr.isExport)
+    generated += `export `
     generated += `class ${name} {\n`
 
     for (const member of members) {
@@ -111,17 +117,14 @@ for (const fileName of fileNames) {
           generated += `      obj.${member.name}.map((item:any) => ${member.type}.fromObj(item)),\n`
         else
           generated += `      ${member.type}.fromObj(obj.${member.name}),\n`
-      else
-
-        if (member.type in decoderMapper) {
-          const decoder = decoderMapper[member.type]
-          if (member.isArray)
-            generated += `      obj.${member.name}.map((item:any) => ${decoder("item")}),,\n`
-          else
-            generated += `      ${decoder(`obj.${member.name}`)},\n`
-        }
+      else if (member.type in decoderMapper) {
+        const decoder = decoderMapper[member.type]
+        if (member.isArray)
+          generated += `      obj.${member.name}.map((item:any) => ${decoder("item")}),,\n`
         else
-          generated += `      obj.${member.name},\n`
+          generated += `      ${decoder(`obj.${member.name}`)},\n`
+      } else
+        generated += `      obj.${member.name},\n`
     })
     generated += "    )\n"
     generated += "  }\n"

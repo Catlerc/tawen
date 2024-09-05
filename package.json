@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npm run gen & npm run prepare & tsc",
+    "build": "npm run gen & npm run prepare & tsc -b",
 
     "prepare": "node tasks/prepareBuild.mjs",
     "gen": "node tasks/structGenerator.mjs",
