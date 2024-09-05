@@ -53,7 +53,7 @@ function partsToName(parts) {
 
 
 
-fs.rmSync(DIST_DIR, { recursive: true })
+// fs.rmSync(DIST_DIR, { recursive: true })
 
 const files = recDirWalker(SRC_DIR)
 
