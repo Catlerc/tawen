@@ -1,23 +1,10 @@
 import fs from 'fs';
+import {replaceFromTo, recDirWalker, readFile, writeFile} from "./utils.mjs";
 
 
 const SRC_DIR = "./src"
 const TMP_DIR = "./_tmp"
 const DIST_DIR = "./dist"
-
-function recDirWalker(path) {
-  let files = []
-  fs.readdirSync(path).forEach(fileName => {
-    const filePath = path + "/" + fileName
-    const stats = fs.statSync(filePath)
-
-    if (stats.isFile())
-      files.push(filePath)
-    else
-      files.push(...recDirWalker(filePath))
-  });
-  return files;
-}
 
 const importRegEx = /from(\s+)"(.+?)"/g
 
@@ -38,13 +25,6 @@ function getImports(code) {
   return imports.reverse()
 }
 
-function readFile(path) {
-  return fs.readFileSync(path).toString()
-}
-
-function writeFile(path, str) {
-  fs.writeFileSync(path, str)
-}
 
 function partsToName(parts) {
   return parts.join("__")
@@ -93,7 +73,7 @@ nestedFiles.forEach(file => {
       importRes = partsToName(importNorm)
     else
       importRes = partsToName(importNormLocal)
-    codeWithImports = codeWithImports.slice(0, imprt.index) + "./" + importRes + codeWithImports.slice(imprt.index + imprt.length)
+    codeWithImports = replaceFromTo(codeWithImports, imprt.index, imprt.index + imprt.length, "./" + importRes)
   })
   writeFile(TMP_DIR + "/" + file.flattenName + "." + file.extension, codeWithImports)
 })

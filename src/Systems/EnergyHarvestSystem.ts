@@ -4,4 +4,3 @@ export class EnergyHarvestSystem extends System<number> {
     console.log(t)
   }
 }
-

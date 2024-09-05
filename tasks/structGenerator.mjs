@@ -1,77 +1,84 @@
 import ts from "typescript";
 
-import fs from 'fs';
-import path from 'path';
+import {readFile, recDirWalker, replaceFromTo, writeFile} from "./utils.mjs";
 
+const SRC = "./src"
+const GEN_COMMENT_START = '//<editor-fold desc="Generated">'
+const GEN_COMMENT_END = '//</editor-fold>'
 
-const domainFile = "./src/domain.ts"
-const domainDestinationFile = "./src/gen/domain.ts"
-
-//parse
-
-const program = ts.createProgram([domainFile], {})
-const typeChecker = program.getTypeChecker()
-const sourceFile = program.getSourceFile(domainFile)
-
-const resultFile = ts.createSourceFile(
-    domainDestinationFile,
-    "",
-    ts.ScriptTarget.Latest,
-    false,
-    ts.ScriptKind.TSX
-);
-
-//get info
-
-let interfaces = []
-ts.forEachChild(sourceFile, (node) => {
-    if (ts.isInterfaceDeclaration(node)) {
-        const interfaceName = node.name.escapedText
-        let members = []
-
-        node.members.forEach(member => {
-            const memberName = member.name.escapedText
-            const memberType = typeChecker.getTypeAtLocation(member)
-            const memberTypeStr = typeChecker.typeToString(memberType)
-
-            members.push({
-                name: memberName,
-                type: memberTypeStr
-            })
-        })
-        interfaces.push({
-            name: interfaceName,
-            members: members
-        })
+function isDataTypeForInterface(node) {
+  if (ts.isInterfaceDeclaration(node)) {
+    //FOR INTERFACE
+    if (node.heritageClauses === undefined) return false
+    for (let i = 0; i < node.heritageClauses.length; i++) {
+      for (let j = 0; j < node.heritageClauses[i].types.length; j++) {
+        if (node.heritageClauses[i].types[j].expression.escapedText === "DataType") return true
+      }
     }
-})
+    return false
+  }
+  return false
 
 
-// utils
-
-function isKnownName(name) {
-    return interfaces.some((value, _, __) => value.name === name)
 }
 
-// gen
+function isDataTypeForType(node) {
+  if (node.symbol === undefined) return false
+  for (const baseType of typeChecker.getBaseTypes(node)) {
+    if (baseType.symbol?.escapedName === "DataType") return true
+  }
+  return false
+}
 
-let generated = ""
-interfaces.forEach((intr) => {
+
+const fileNames = recDirWalker(SRC)
+
+const program = ts.createProgram(fileNames, {})
+const typeChecker = program.getTypeChecker()
+for (const fileName of fileNames) {
+  const sourceFile = program.getSourceFile(fileName)
+  let interfaces = []
+  ts.forEachChild(sourceFile, (node) => {
+
+    if (ts.isInterfaceDeclaration(node) && isDataTypeForInterface(node)) {
+      const interfaceName = node.name.escapedText
+      let members = []
+      for (const member of node.members) {
+        const memberName = member.name.escapedText
+        const memberType = typeChecker.getTypeAtLocation(member)
+        const memberTypeStr = typeChecker.typeToString(memberType)
+
+        members.push({
+          name: memberName, type: memberTypeStr, isDataType: isDataTypeForType(memberType)
+        })
+      }
+      interfaces.push({
+        name: interfaceName, members: members
+      })
+    }
+  })
+
+  //GENERATE
+
+  let generated = ""
+
+  for (const intr of interfaces) {
     const name = intr.name
     const members = intr.members
-    generated += `export class ${name} {\n`
-    members.forEach(member => {
-        generated += `  ${member.name}: ${member.type};\n`
-    })
+    generated += `class ${name} {\n`
+
+    for (const member of members) {
+      generated += `  ${member.name}: ${member.type};\n`
+    }
     generated += "  constructor("
 
-    members.forEach(member => {
-        generated += `${member.name}: ${member.type}, `
-    })
+    for (const member of members) {
+      generated += `${member.name}: ${member.type}, `
+    }
     generated += ") {\n"
-    members.forEach(member => {
-        generated += `    this.${member.name} = ${member.name};\n`
-    })
+    for (const member of members) {
+      generated += `    this.${member.name} = ${member.name};\n`
+    }
     generated += "  }\n"
     generated += "  encode() {\n"
     generated += "    return JSON.stringify(this)\n"
@@ -82,22 +89,29 @@ interfaces.forEach((intr) => {
     generated += "  static fromObj(obj: any) {\n"
     generated += `    return new ${name}(\n`
     members.forEach(member => {
-        if (isKnownName(member.type))
-            generated += `      ${member.type}.fromObj(obj.${member.name}),\n`
-        else
-            generated += `      obj.${member.name},\n`
+      if (member.isDataType)
+        generated += `      ${member.type}.fromObj(obj.${member.name}),\n`
+      else
+        generated += `      obj.${member.name},\n`
     })
     generated += "    )\n"
     generated += "  }\n"
-    generated += `}\n`
-})
+    generated += "}\n"
+  }
+  // SAVE
+  const oldFile = readFile(fileName)
+  const insert = GEN_COMMENT_START + "\n" + generated + "\n" + GEN_COMMENT_END
 
-//save
+  const startIndex = oldFile.indexOf(GEN_COMMENT_START)
+  const endIndexRaw = oldFile.indexOf(GEN_COMMENT_END)
+  const endIndex = endIndexRaw === -1 ? oldFile.length : endIndexRaw + GEN_COMMENT_END.length
+  let generatedFileContent
+  if (startIndex >= 0) {
+    generatedFileContent = replaceFromTo(oldFile, oldFile.indexOf(GEN_COMMENT_START), endIndex, insert)
+  } else {
+    generatedFileContent = oldFile + "\n" + insert
+  }
 
-
-fs.writeFile(domainDestinationFile, generated, function (err) {
-    if (err) {
-        return console.log(err);
-    }
-    console.log("The file was saved!");
-})
+  if (interfaces.length > 0)
+    writeFile(fileName, generatedFileContent)
+}

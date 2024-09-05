@@ -1,5 +1,6 @@
 import {System, Systems} from "./Systems/System";
 import {EnergyHarvestSystem} from "./Systems/EnergyHarvestSystem";
+import {DataType} from "./DataType/DataType";
 
 function start() {
   console.log("starting...");
