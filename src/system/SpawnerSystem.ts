@@ -1,28 +1,19 @@
-import {System} from "./System";
-import {DataType} from "../DataType";
+import {registerSystem, System} from "../ECS";
 import {generateRandomHex} from "../utils";
+import {Component} from "../Component";
 
-interface SpawnOrder extends DataType {
+export interface SpawnOrder extends DataType {
   parts: BodyPartConstant[]
 }
 
-export interface SpawnerData extends DataType {
+export interface SpawnerComponent extends Component {
   queue: SpawnOrder[],
   spawner: StructureSpawn,
 }
 
-export class SpawnerSystem extends System<SpawnerData> {
-  update(spawnerData: SpawnerData) {
-    if (spawnerData.spawner.spawning === null)
-    {
-      const toSpawn = spawnerData.queue.shift()!
-      spawnerData.spawner.spawnCreep(toSpawn.parts, generateRandomHex() )
-    }
-  }
-}
 
 //<editor-fold desc="Generated">
-class SpawnOrder {
+export class SpawnOrder implements SpawnOrder {
   parts: BodyPartConstant[];
   constructor(parts: BodyPartConstant[], ) {
     this.parts = parts;
@@ -30,6 +21,10 @@ class SpawnOrder {
   encode() {
     return JSON.stringify(this)
   }
+  public get typeName(): "SpawnOrder" {
+    return "SpawnOrder"
+  }
+  static typeName = "SpawnOrder"
   static decode(json: string) {
     return SpawnOrder.fromObj(JSON.parse(json))
   }
@@ -39,7 +34,7 @@ class SpawnOrder {
     )
   }
 }
-export class SpawnerData {
+export class SpawnerComponent implements SpawnerComponent {
   queue: SpawnOrder[];
   spawner: StructureSpawn;
   constructor(queue: SpawnOrder[], spawner: StructureSpawn, ) {
@@ -49,11 +44,15 @@ export class SpawnerData {
   encode() {
     return JSON.stringify(this)
   }
+  public get typeName(): "SpawnerComponent" {
+    return "SpawnerComponent"
+  }
+  static typeName = "SpawnerComponent"
   static decode(json: string) {
-    return SpawnerData.fromObj(JSON.parse(json))
+    return SpawnerComponent.fromObj(JSON.parse(json))
   }
   static fromObj(obj: any) {
-    return new SpawnerData(
+    return new SpawnerComponent(
       obj.queue.map((item:any) => SpawnOrder.fromObj(item)),
       Game.spawns[obj.spawner],
     )
@@ -61,3 +60,13 @@ export class SpawnerData {
 }
 
 //</editor-fold>
+
+registerSystem(
+  "SpawnerSystem",
+  [SpawnerComponent],
+  query => {
+    const toSpawn = query.spawner.queue.shift()
+    if (toSpawn === undefined) return
+    query.spawner.spawner.spawnCreep(toSpawn.parts, generateRandomHex())
+  }
+)

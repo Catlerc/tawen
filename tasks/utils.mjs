@@ -25,3 +25,7 @@ export function readFile(path) {
 export function writeFile(path, str) {
   fs.writeFileSync(path, str)
 }
+
+export function partsToName(parts) {
+  return parts.join("__")
+}

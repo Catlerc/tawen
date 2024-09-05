@@ -1,52 +1,46 @@
 import ts from "typescript";
 
-import {readFile, recDirWalker, replaceFromTo, writeFile} from "./utils.mjs";
+import {readFile, recDirWalker, replaceFromTo, writeFile, partsToName} from "./utils.mjs";
 
 const SRC = "./src"
+const ECS_REGISTRY_FILE = "./src/ECSRegistry.ts"
 const GEN_COMMENT_START = '//<editor-fold desc="Generated">'
 const GEN_COMMENT_END = '//</editor-fold>'
+const DATATYPE_NAMES = ["DataType", "Component"]
 
-function isDataTypeForInterface(node) {
-  if (ts.isInterfaceDeclaration(node)) {
-    //FOR INTERFACE
-    if (node.heritageClauses === undefined) return false
-    for (let i = 0; i < node.heritageClauses.length; i++) {
-      for (let j = 0; j < node.heritageClauses[i].types.length; j++) {
-        if (node.heritageClauses[i].types[j].expression.escapedText === "DataType") return true
-      }
-    }
-    return false
-  }
-  return false
-
-
-}
 
 function isArray(node) {
   return typeChecker.isArrayType(node)
-
 }
 
+function getDataTypeType(node) {
+  for (const baseType of typeChecker.getBaseTypes(node)) {
+    if (DATATYPE_NAMES.includes(baseType.symbol?.escapedName)) return baseType.symbol?.escapedName
+  }
+}
 
 function isDataTypeForType(node) {
   if (node.symbol === undefined) return false
   for (const baseType of typeChecker.getBaseTypes(node)) {
-    if (baseType.symbol?.escapedName === "DataType") return true
+    if (DATATYPE_NAMES.includes(baseType.symbol?.escapedName)) return true
   }
   return false
 }
 
+
+let toRegister = []
 
 const fileNames = recDirWalker(SRC)
 
 const program = ts.createProgram(fileNames, {})
 const typeChecker = program.getTypeChecker()
+let allInterfaces = []
 for (const fileName of fileNames) {
   const sourceFile = program.getSourceFile(fileName)
   let interfaces = []
   ts.forEachChild(sourceFile, (node) => {
 
-    if (ts.isInterfaceDeclaration(node) && isDataTypeForInterface(node)) {
+    if (ts.isInterfaceDeclaration(node) && isDataTypeForType(node)) {
 
       const interfaceName = node.name.escapedText
       let members = []
@@ -63,10 +57,12 @@ for (const fileName of fileNames) {
       }
 
       const isExport = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0
-
-      interfaces.push({
-        name: interfaceName, members: members, isExport: isExport
-      })
+      const tpe = getDataTypeType(node)
+      const intr = {
+        name: interfaceName, members: members, isExport: isExport | tpe === "Component", tpe: tpe, fileName: fileName
+      }
+      interfaces.push(intr)
+      allInterfaces.push(intr)
     }
   })
 
@@ -78,8 +74,8 @@ for (const fileName of fileNames) {
     const name = intr.name
     const members = intr.members
     if (intr.isExport)
-    generated += `export `
-    generated += `class ${name} {\n`
+      generated += `export `
+    generated += `class ${name} implements ${name} {\n`
 
     for (const member of members) {
       const arrayPart = member.isArray ? "[]" : ""
@@ -99,6 +95,10 @@ for (const fileName of fileNames) {
     generated += "  encode() {\n"
     generated += "    return JSON.stringify(this)\n"
     generated += "  }\n"
+    generated += `  public get typeName(): "${name}" {\n`
+    generated += `    return "${name}"\n`
+    generated += "  }\n"
+    generated += `  static typeName = "${name}"\n`
     generated += "  static decode(json: string) {\n"
     generated += `    return ${name}.fromObj(JSON.parse(json))\n`
     generated += "  }\n"
@@ -151,4 +151,17 @@ for (const fileName of fileNames) {
 
 
   writeFile(fileName, generatedFileContent)
+
 }
+
+let registryGenerated = ""
+registryGenerated += `import {Component} from "./Component";\n`
+for (const intr of allInterfaces) {
+  if (intr.tpe === "Component") {
+    const importPath = intr.fileName.slice(SRC.length + 1, -3)
+    registryGenerated += `import {${intr.name}} from "./${importPath}";\n`
+    registryGenerated += `Component.ECSRef.registerComponent("${intr.name}", ${intr.name}.fromObj)\n`
+  }
+}
+
+writeFile(ECS_REGISTRY_FILE, registryGenerated)

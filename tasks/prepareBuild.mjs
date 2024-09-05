@@ -1,5 +1,5 @@
 import fs from 'fs';
-import {replaceFromTo, recDirWalker, readFile, writeFile} from "./utils.mjs";
+import {replaceFromTo, recDirWalker, readFile, writeFile, partsToName} from "./utils.mjs";
 
 
 const SRC_DIR = "./src"
@@ -26,9 +26,7 @@ function getImports(code) {
 }
 
 
-function partsToName(parts) {
-  return parts.join("__")
-}
+
 
 function shortenPath(pathParts){
   let res = []

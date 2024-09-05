@@ -5,18 +5,14 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "npm run gen & npm run prepare & tsc -b",
-
     "prepare": "node tasks/prepareBuild.mjs",
     "gen": "node tasks/structGenerator.mjs",
     "cleanup": "node tasks/cleanup.mjs"
   },
   "devDependencies": {
     "@types/screeps": "3.3.8",
-    "ts-macros": "^2.6.1",
+    "@types/typescript": "^2.0.0",
     "typescript": "5.5.4"
   },
-  "private": true,
-  "dependencies": {
-    "remove": "^0.1.5"
-  }
+  "private": true
 }

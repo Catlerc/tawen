@@ -1,0 +1,162 @@
+import {generateRandomHex} from "./utils";
+import {Component} from "./Component";
+
+declare global {
+  type ComponentMemory = {
+    [componentName: Component.Name]: {
+      [entityId: EntityId]: string
+    }
+  }
+
+  type ComponentCache = {
+    [componentName: Component.Name]: {
+      [entityId: EntityId]: Component[]
+    }
+  }
+
+  interface Memory {
+    componentsMemory: ComponentMemory
+    entityIds: EntityId[]
+  }
+}
+
+export class ECS {
+  static entities: EntityId[] = [];
+  static systems: { [systemName: System.Name]: System<any> } = {}
+  static components: { [componentName: Component.Name]: (obj: any) => Component } = {}
+  static componentsCache: ComponentCache
+
+  static addEntity(): EntityId {
+    const id = generateRandomHex()
+    ECS.entities.push(id)
+    return id
+  }
+
+  static addComponent(entityId: EntityId, component: Component) {
+    if (!(component.typeName in ECS.componentsCache))
+      ECS.componentsCache[component.typeName] = {}
+    if (!(entityId in ECS.componentsCache[component.typeName]))
+      ECS.componentsCache[component.typeName][entityId] = []
+    ECS.componentsCache[component.typeName][entityId].push(component)
+  }
+
+  static registerSystem(system: System<any>): void {
+    ECS.systems[system.name] = system
+  }
+
+  static registerComponent(componentName: Component.Name, fromObj: (obj: any) => Component): void {
+    ECS.components[componentName] = fromObj
+  }
+
+
+  static start(): void {
+    if (Memory.componentsMemory === undefined) Memory.componentsMemory = {}
+    if (Memory.entityIds === undefined) Memory.entityIds = []
+    ECS.loadCache()
+    // this.systems.forEach((system: System<any>) => system.loadCache())
+  }
+
+  private static uncapitalizeFirstLetter(str: string): string {
+    return str.charAt(0).toLowerCase() + str.slice(1);
+  }
+
+  private static shortenComponentName(fullName: string) {
+    return ECS.uncapitalizeFirstLetter(fullName.slice(0, -("Component".length)))
+  }
+
+  static getQueryBySelector(selector: Component[]) {
+    const componentNames = selector.map(comp => comp.typeName)
+    let res = []
+    outer: for (const entityId of ECS.entities) {
+      let query: { [key: string]: any } = {}
+      for (const componentName of componentNames) {
+        const componentsOfThisEntity = ECS.componentsCache[componentName][entityId]
+        if (componentsOfThisEntity === undefined) continue outer; // not fully equipped entity
+        query[ECS.shortenComponentName(componentName)] = componentsOfThisEntity[0]//TODO
+        res.push(query)
+      }
+
+    }
+    return res
+  }
+
+  static update(): void {
+    for (const systemName in ECS.systems) {
+      const system = ECS.systems[systemName]
+      const queries = ECS.getQueryBySelector(system.selector)
+      queries.forEach(system.update)
+
+    }
+  }
+
+  static saveCache(): void {
+    let res: ComponentMemory = {}
+    for (const componentName in ECS.componentsCache) {
+      res[componentName] = {}
+      for (const entityId in ECS.componentsCache[componentName]) {
+        res[componentName][entityId] = JSON.stringify(ECS.componentsCache[componentName][entityId]);
+      }
+    }
+    Memory.componentsMemory = res
+    Memory.entityIds = ECS.entities
+  }
+
+  static loadCache(): void {
+    let res: ComponentCache = {}
+    for (const componentName in Memory.componentsMemory) {
+      res[componentName] = {}
+      for (const entityId in Memory.componentsMemory[componentName]) {
+        const arr: any[] = JSON.parse(Memory.componentsMemory[componentName][entityId])
+        res[componentName][entityId] = arr.map(obj => {
+          console.log(componentName)
+          console.log(JSON.stringify(ECS.components))
+          return ECS.components[componentName]!(obj)
+        });
+      }
+    }
+    ECS.componentsCache = res
+    for (const componentName in ECS.components) {
+      if (ECS.componentsCache[componentName] === undefined)
+        ECS.componentsCache[componentName] = {}
+    }
+    ECS.entities = Memory.entityIds
+  }
+}
+
+export abstract class System<S extends (abstract new (...args: any) => any)[]> {
+  abstract name: System.Name
+  abstract selector: S
+
+  abstract update(data: DataOf<S>): void
+}
+
+export namespace System {
+  export type Name = string
+}
+
+type EntityId = string
+
+
+type WithTypeName = { typeName: string }
+type getTypeNameOfDataType<C> = C extends { typeName: infer T } ? T : never
+type unwrapArray<Array> = Array extends (infer Elem)[] ? Elem : never
+type removeJunk<String> = String extends `${infer A}Component` ? A : never
+type toObject<Orred extends WithTypeName> = {
+  [Property in Orred as Uncapitalize<removeJunk<getTypeNameOfDataType<Property>>>]: Property
+}
+export type DataOf<S extends (abstract new (...args: any) => any)[]> = toObject<InstanceType<unwrapArray<S>>>
+
+export function registerSystem<S extends (abstract new (...args: any) => any)[]>(name: System.Name, selector: S, update: (query: DataOf<S>) => any) {
+  class OutSystem extends System<typeof selector> {
+    name = name
+    selector = selector
+
+    update(data: DataOf<S>): void {
+      update(data)
+    }
+  }
+
+  const instance = new OutSystem() as System<typeof selector>
+  ECS.registerSystem(instance)
+  return instance
+}
