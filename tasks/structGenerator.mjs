@@ -22,6 +22,12 @@ function isDataTypeForInterface(node) {
 
 }
 
+function isArray(node) {
+  return typeChecker.isArrayType(node)
+
+}
+
+
 function isDataTypeForType(node) {
   if (node.symbol === undefined) return false
   for (const baseType of typeChecker.getBaseTypes(node)) {
@@ -46,10 +52,12 @@ for (const fileName of fileNames) {
       for (const member of node.members) {
         const memberName = member.name.escapedText
         const memberType = typeChecker.getTypeAtLocation(member)
-        const memberTypeStr = typeChecker.typeToString(memberType)
+        const isArrayFlag = isArray(memberType)
+        const isDataTypeFlag = isArrayFlag ? isDataTypeForType(memberType.resolvedTypeArguments[0]) : isDataTypeForType(memberType)
 
+        const memberTypeStr = isArrayFlag ? typeChecker.typeToString(memberType.resolvedTypeArguments[0]) : typeChecker.typeToString(memberType)
         members.push({
-          name: memberName, type: memberTypeStr, isDataType: isDataTypeForType(memberType)
+          name: memberName, type: memberTypeStr, isDataType: isDataTypeFlag, isArray: isArrayFlag
         })
       }
       interfaces.push({
@@ -68,12 +76,14 @@ for (const fileName of fileNames) {
     generated += `class ${name} {\n`
 
     for (const member of members) {
-      generated += `  ${member.name}: ${member.type};\n`
+      const arrayPart = member.isArray ? "[]" : ""
+      generated += `  ${member.name}: ${member.type}${arrayPart};\n`
     }
     generated += "  constructor("
 
     for (const member of members) {
-      generated += `${member.name}: ${member.type}, `
+      const arrayPart = member.isArray ? "[]" : ""
+      generated += `${member.name}: ${member.type}${arrayPart}, `
     }
     generated += ") {\n"
     for (const member of members) {
@@ -89,8 +99,12 @@ for (const fileName of fileNames) {
     generated += "  static fromObj(obj: any) {\n"
     generated += `    return new ${name}(\n`
     members.forEach(member => {
+
       if (member.isDataType)
-        generated += `      ${member.type}.fromObj(obj.${member.name}),\n`
+        if (member.isArray)
+          generated += `      obj.${member.name}.map((item:any) => ${member.type}.fromObj(item)),\n`
+        else
+          generated += `      ${member.type}.fromObj(obj.${member.name}),\n`
       else
         generated += `      obj.${member.name},\n`
     })

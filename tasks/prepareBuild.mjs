@@ -30,6 +30,21 @@ function partsToName(parts) {
   return parts.join("__")
 }
 
+function shortenPath(pathParts){
+  let res = []
+  pathParts.forEach(part => {
+    switch (part) {
+      case ".":
+        break;
+      case "..":
+        res.pop()
+        break;
+      default:
+        res.push(part)
+    }
+  })
+  return res
+}
 
 
 
@@ -55,6 +70,7 @@ if (fs.existsSync(TMP_DIR)) fs.rmSync(TMP_DIR, {recursive: true})
 fs.mkdirSync(TMP_DIR)
 
 
+
 nestedFiles.forEach(file => {
   const code = readFile(file.path)
   const imports = getImports(code)
@@ -63,9 +79,8 @@ nestedFiles.forEach(file => {
 
   imports.forEach(imprt => {
     let value = imprt.value
-    if (value.startsWith("./")) value = value.substring(2)
     const importNormLocal = value.split("/")
-    const importNorm = file.importParts.concat(importNormLocal)
+    const importNorm = shortenPath(file.importParts.concat(importNormLocal))
 
 
     let importRes
