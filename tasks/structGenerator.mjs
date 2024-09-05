@@ -98,6 +98,12 @@ for (const fileName of fileNames) {
     generated += "  }\n"
     generated += "  static fromObj(obj: any) {\n"
     generated += `    return new ${name}(\n`
+
+    const decoderMapper = {
+      "Room": (x) => `Game.rooms[${x}]`,
+      "StructureSpawn": (x) => `Game.spawns[${x}]`,
+      "Creep": (x) => `Game.creeps[${x}]`
+    }
     members.forEach(member => {
 
       if (member.isDataType)
@@ -106,7 +112,16 @@ for (const fileName of fileNames) {
         else
           generated += `      ${member.type}.fromObj(obj.${member.name}),\n`
       else
-        generated += `      obj.${member.name},\n`
+
+        if (member.type in decoderMapper) {
+          const decoder = decoderMapper[member.type]
+          if (member.isArray)
+            generated += `      obj.${member.name}.map((item:any) => ${decoder("item")}),,\n`
+          else
+            generated += `      ${decoder(`obj.${member.name}`)},\n`
+        }
+        else
+          generated += `      obj.${member.name},\n`
     })
     generated += "    )\n"
     generated += "  }\n"

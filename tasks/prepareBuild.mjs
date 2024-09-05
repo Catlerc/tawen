@@ -84,7 +84,8 @@ nestedFiles.forEach(file => {
 
 
     let importRes
-    if (fs.existsSync(SRC_DIR + "/" + importNorm.join("/") + ".ts"))
+    const path = SRC_DIR + "/" + importNorm.join("/")
+    if (fs.existsSync( path + ".ts") || fs.existsSync( path + ".js"))
       importRes = partsToName(importNorm)
     else
       importRes = partsToName(importNormLocal)

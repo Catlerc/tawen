@@ -1,56 +1,56 @@
 import {System} from "./System";
 import {DataType} from "../DataType";
 
-interface Kek extends DataType {
-  g: string
+interface SpawnOrder extends DataType {
+  parts: string[]
 }
 
-interface SpawnEntity extends DataType {
-  a: number[],
-  keks: Kek[]
+interface SpawnerData extends DataType {
+  queue: SpawnOrder[],
+  spawner: StructureSpawn,
 }
 
-export class SpawnerSystem extends System<SpawnEntity> {
-  update(t: SpawnEntity) {
-    console.log(t)
+export class SpawnerSystem extends System<SpawnerData> {
+  update(spawnerData: SpawnerData) {
+
   }
 }
 
 //<editor-fold desc="Generated">
-class Kek {
-  g: string;
-  constructor(g: string, ) {
-    this.g = g;
+class SpawnOrder {
+  parts: string[];
+  constructor(parts: string[], ) {
+    this.parts = parts;
   }
   encode() {
     return JSON.stringify(this)
   }
   static decode(json: string) {
-    return Kek.fromObj(JSON.parse(json))
+    return SpawnOrder.fromObj(JSON.parse(json))
   }
   static fromObj(obj: any) {
-    return new Kek(
-      obj.g,
+    return new SpawnOrder(
+      obj.parts,
     )
   }
 }
-class SpawnEntity {
-  a: number[];
-  keks: Kek[];
-  constructor(a: number[], keks: Kek[], ) {
-    this.a = a;
-    this.keks = keks;
+class SpawnerData {
+  queue: SpawnOrder[];
+  spawner: StructureSpawn;
+  constructor(queue: SpawnOrder[], spawner: StructureSpawn, ) {
+    this.queue = queue;
+    this.spawner = spawner;
   }
   encode() {
     return JSON.stringify(this)
   }
   static decode(json: string) {
-    return SpawnEntity.fromObj(JSON.parse(json))
+    return SpawnerData.fromObj(JSON.parse(json))
   }
   static fromObj(obj: any) {
-    return new SpawnEntity(
-      obj.a,
-      obj.keks.map((item:any) => Kek.fromObj(item)),
+    return new SpawnerData(
+      obj.queue.map((item:any) => SpawnOrder.fromObj(item)),
+      Game.spawns[obj.spawner],
     )
   }
 }
