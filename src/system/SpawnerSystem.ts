@@ -5,6 +5,7 @@ import {DataType} from "../DataType";
 
 export interface SpawnOrder extends DataType {
   parts: BodyPartConstant[]
+  creepName: string
 }
 
 export interface SpawnerComponent extends Component {
@@ -16,8 +17,10 @@ export interface SpawnerComponent extends Component {
 //<editor-fold desc="Generated">
 export class SpawnOrder implements SpawnOrder {
   parts: BodyPartConstant[];
-  constructor(parts: BodyPartConstant[], ) {
+  creepName: string;
+  constructor(parts: BodyPartConstant[], creepName: string, ) {
     this.parts = parts;
+    this.creepName = creepName;
   }
   encode() {
     return JSON.stringify(this)
@@ -32,6 +35,7 @@ export class SpawnOrder implements SpawnOrder {
   static fromObj(obj: any) {
     return new SpawnOrder(
       obj.parts,
+      obj.creepName,
     )
   }
 }
@@ -65,9 +69,21 @@ export class SpawnerComponent implements SpawnerComponent {
 registerSystem(
   "SpawnerSystem",
   [SpawnerComponent],
-  query => {
+  function* (query) {
+    console.log("1")
+    yield 1
+    console.log("2")
+    yield 3
+    console.log("3")
+    yield 4
+
+
     const toSpawn = query.spawner.queue.shift()
     if (toSpawn === undefined) return
-    query.spawner.spawner.spawnCreep(toSpawn.parts, generateRandomHex())
+    const res = query.spawner.spawner.spawnCreep(toSpawn.parts, toSpawn.creepName)
+    if (res === OK) return;
+
+    query.spawner.queue.push(toSpawn)
+    console.log("cannot spawn creep. code:"+res)
   }
 )

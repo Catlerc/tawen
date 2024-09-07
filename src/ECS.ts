@@ -21,11 +21,16 @@ declare global {
   }
 }
 
+type Dict<K extends string, V> = {
+  [_ in K]: V;
+};
+
 export class ECS {
   static entities: EntityId[] = [];
   static systems: { [systemName: System.Name]: System<any> } = {}
   static components: { [componentName: Component.Name]: (obj: any) => Component } = {}
   static componentsCache: ComponentCache
+  static generatorState: Dict<EntityId, Dict<System.Name, any>> = {}
 
   static addEntity(): EntityId {
     const id = generateRandomHex()
@@ -54,7 +59,6 @@ export class ECS {
     if (Memory.componentsMemory === undefined) Memory.componentsMemory = {}
     if (Memory.entityIds === undefined) Memory.entityIds = []
     ECS.loadCache()
-    // this.systems.forEach((system: System<any>) => system.loadCache())
   }
 
   private static uncapitalizeFirstLetter(str: string): string {
@@ -74,6 +78,7 @@ export class ECS {
         const componentsOfThisEntity = ECS.componentsCache[componentName][entityId]
         if (componentsOfThisEntity === undefined) continue outer; // not fully equipped entity
         query[ECS.shortenComponentName(componentName)] = componentsOfThisEntity[0]//TODO
+        query.entityId = entityId
         res.push(query)
       }
 
@@ -82,11 +87,30 @@ export class ECS {
   }
 
   static update(): void {
+    function continueGenerator(generator: Generator<any>, entityId: EntityId, systemName: System.Name) {
+      const result = generator.next()
+      if (result.done) {
+        if (entityId in ECS.generatorState)
+          delete ECS.generatorState[entityId][systemName]
+      } else {
+        if (!(entityId in ECS.generatorState)) ECS.generatorState[entityId] = {};
+        ECS.generatorState[entityId][systemName] = generator
+      }
+    }
+
     for (const systemName in ECS.systems) {
       Debug.time(systemName, () => {
         const system = ECS.systems[systemName]
         const queries = ECS.getQueryBySelector(system.selector)
-        queries.forEach(system.update)
+        for (const data of queries) {
+          if ((data.entityId in ECS.generatorState) && (systemName in ECS.generatorState[data.entityId])) {
+            const oldGenState = ECS.generatorState[data.entityId][systemName]
+            continueGenerator(oldGenState, data.entityId, systemName)
+          } else {
+            const generator = system.update(data as DataOf<typeof system.selector>);
+            continueGenerator(generator, data.entityId, systemName)
+          }
+        }
       })
     }
   }
@@ -113,8 +137,6 @@ export class ECS {
         for (const entityId in Memory.componentsMemory[componentName]) {
           const arr: any[] = JSON.parse(Memory.componentsMemory[componentName][entityId])
           res[componentName][entityId] = arr.map(obj => {
-            console.log(componentName)
-            console.log(JSON.stringify(ECS.components))
             return ECS.components[componentName]!(obj)
           });
         }
@@ -133,7 +155,7 @@ export abstract class System<S extends (abstract new (...args: any) => any)[]> {
   abstract name: System.Name
   abstract selector: S
 
-  abstract update(data: DataOf<S>): void
+  abstract update(data: DataOf<S>): Generator<any>
 }
 
 export namespace System {
@@ -149,16 +171,16 @@ type unwrapArray<Array> = Array extends (infer Elem)[] ? Elem : never
 type removeJunk<String> = String extends `${infer A}Component` ? A : never
 type toObject<Orred extends WithTypeName> = {
   [Property in Orred as Uncapitalize<removeJunk<getTypeNameOfDataType<Property>>>]: Property
-}
+} & { entityId: EntityId }
 export type DataOf<S extends (abstract new (...args: any) => any)[]> = toObject<InstanceType<unwrapArray<S>>>
 
-export function registerSystem<S extends (abstract new (...args: any) => any)[]>(name: System.Name, selector: S, update: (query: DataOf<S>) => any) {
+export function registerSystem<S extends (abstract new (...args: any) => any)[]>(name: System.Name, selector: S, update: (query: DataOf<S>) => Generator<any>) {
   class OutSystem extends System<typeof selector> {
     name = name
     selector = selector
 
-    update(data: DataOf<S>): void {
-      update(data)
+    update(data: DataOf<S>): Generator<any> {
+      return update(data)
     }
   }
 
