@@ -1,5 +1,6 @@
 import {generateRandomHex} from "./utils";
 import {Component} from "./Component";
+import {Debug} from "./Debug";
 
 declare global {
   type ComponentMemory = {
@@ -82,44 +83,49 @@ export class ECS {
 
   static update(): void {
     for (const systemName in ECS.systems) {
-      const system = ECS.systems[systemName]
-      const queries = ECS.getQueryBySelector(system.selector)
-      queries.forEach(system.update)
-
+      Debug.time(systemName, () => {
+        const system = ECS.systems[systemName]
+        const queries = ECS.getQueryBySelector(system.selector)
+        queries.forEach(system.update)
+      })
     }
   }
 
   static saveCache(): void {
-    let res: ComponentMemory = {}
-    for (const componentName in ECS.componentsCache) {
-      res[componentName] = {}
-      for (const entityId in ECS.componentsCache[componentName]) {
-        res[componentName][entityId] = JSON.stringify(ECS.componentsCache[componentName][entityId]);
+    Debug.time("saveCache", () => {
+      let res: ComponentMemory = {}
+      for (const componentName in ECS.componentsCache) {
+        res[componentName] = {}
+        for (const entityId in ECS.componentsCache[componentName]) {
+          res[componentName][entityId] = JSON.stringify(ECS.componentsCache[componentName][entityId]);
+        }
       }
-    }
-    Memory.componentsMemory = res
-    Memory.entityIds = ECS.entities
+      Memory.componentsMemory = res
+      Memory.entityIds = ECS.entities
+    })
   }
 
   static loadCache(): void {
-    let res: ComponentCache = {}
-    for (const componentName in Memory.componentsMemory) {
-      res[componentName] = {}
-      for (const entityId in Memory.componentsMemory[componentName]) {
-        const arr: any[] = JSON.parse(Memory.componentsMemory[componentName][entityId])
-        res[componentName][entityId] = arr.map(obj => {
-          console.log(componentName)
-          console.log(JSON.stringify(ECS.components))
-          return ECS.components[componentName]!(obj)
-        });
+    Debug.time("loadCache", () => {
+      let res: ComponentCache = {}
+      for (const componentName in Memory.componentsMemory) {
+        res[componentName] = {}
+        for (const entityId in Memory.componentsMemory[componentName]) {
+          const arr: any[] = JSON.parse(Memory.componentsMemory[componentName][entityId])
+          res[componentName][entityId] = arr.map(obj => {
+            console.log(componentName)
+            console.log(JSON.stringify(ECS.components))
+            return ECS.components[componentName]!(obj)
+          });
+        }
       }
-    }
-    ECS.componentsCache = res
-    for (const componentName in ECS.components) {
-      if (ECS.componentsCache[componentName] === undefined)
-        ECS.componentsCache[componentName] = {}
-    }
-    ECS.entities = Memory.entityIds
+      ECS.componentsCache = res
+      for (const componentName in ECS.components) {
+        if (ECS.componentsCache[componentName] === undefined)
+          ECS.componentsCache[componentName] = {}
+      }
+      ECS.entities = Memory.entityIds
+    })
   }
 }
 

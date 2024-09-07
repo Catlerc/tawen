@@ -1,6 +1,7 @@
 import {registerSystem, System} from "../ECS";
 import {generateRandomHex} from "../utils";
 import {Component} from "../Component";
+import {DataType} from "../DataType";
 
 export interface SpawnOrder extends DataType {
   parts: BodyPartConstant[]
