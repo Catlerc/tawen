@@ -3,12 +3,6 @@ import {Component} from "./Component";
 import {Debug} from "./Debug";
 
 declare global {
-  type ComponentMemory = {
-    [componentName: Component.Name]: {
-      [entityId: EntityId]: string
-    }
-  }
-
   type ComponentCache = {
     [componentName: Component.Name]: {
       [entityId: EntityId]: Component[]
@@ -16,7 +10,7 @@ declare global {
   }
 
   interface Memory {
-    componentsMemory: ComponentMemory
+    componentsMemory: ComponentCache
     entityIds: EntityId[]
   }
 }
@@ -30,7 +24,6 @@ export class ECS {
   static systems: { [systemName: System.Name]: System<any> } = {}
   static components: { [componentName: Component.Name]: (obj: any) => Component } = {}
   static componentsCache: ComponentCache
-  static generatorState: Dict<EntityId, Dict<System.Name, any>> = {}
 
   static addEntity(): EntityId {
     const id = generateRandomHex()
@@ -98,16 +91,8 @@ export class ECS {
 
   static saveCache(): void {
     Debug.time("saveCache", () => {
-      let res: ComponentCache = {}
-      for (const componentName in ECS.componentsCache) {
-        res[componentName] = {}
-        for (const entityId in ECS.componentsCache[componentName]) {
-          res[componentName][entityId] = ECS.componentsCache[componentName][entityId];
-        }
-      }
-
       RawMemory.set(JSON.stringify({
-        componentsMemory: res,
+        componentsMemory: ECS.componentsCache,
         entityIds: ECS.entities
       }))
     })
