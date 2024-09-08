@@ -17,16 +17,20 @@ export class Debug {
   static drawCPU() {
     const visual = new RoomVisual()
     visual.clear()
-    // let text = ""
     let sum = 0
-    let y = 0
+    let y = 0.5
     for (const data of Debug.debugState) {
       const text = `${data.name}: ${data.cpu.toFixed(2)}\n`
       sum += data.cpu
       visual.text(text, 0, y, {align: "left"})
       y += 1
     }
-    const text = `TOTAL CPU USAGE: ${sum.toFixed(2)} aka ${(sum / Game.cpu.limit * 100).toFixed(2)}%`
+    const lastUsed = Game.cpu.getUsed()
+    let unknownTime = lastUsed -sum
+    visual.text(`Unknown: ${unknownTime.toFixed(2)}`, 0, y, {align: "left"})
+    y += 1
+
+    const text = `TOTAL CPU USAGE: ${lastUsed.toFixed(2)} aka ${(lastUsed / Game.cpu.limit * 100).toFixed(2)}%`
     visual.text(text, 0, y + 1, {align: "left"})
   }
 
