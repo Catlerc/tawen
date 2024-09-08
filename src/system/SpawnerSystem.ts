@@ -69,15 +69,8 @@ export class SpawnerComponent implements SpawnerComponent {
 registerSystem(
   "SpawnerSystem",
   [SpawnerComponent],
-  function* (query) {
-    console.log("1")
-    yield 1
-    console.log("2")
-    yield 3
-    console.log("3")
-    yield 4
-
-
+  query => {
+    console.log("kek")
     const toSpawn = query.spawner.queue.shift()
     if (toSpawn === undefined) return
     const res = query.spawner.spawner.spawnCreep(toSpawn.parts, toSpawn.creepName)

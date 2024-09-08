@@ -87,30 +87,11 @@ export class ECS {
   }
 
   static update(): void {
-    function continueGenerator(generator: Generator<any>, entityId: EntityId, systemName: System.Name) {
-      const result = generator.next()
-      if (result.done) {
-        if (entityId in ECS.generatorState)
-          delete ECS.generatorState[entityId][systemName]
-      } else {
-        if (!(entityId in ECS.generatorState)) ECS.generatorState[entityId] = {};
-        ECS.generatorState[entityId][systemName] = generator
-      }
-    }
-
     for (const systemName in ECS.systems) {
       Debug.time(systemName, () => {
         const system = ECS.systems[systemName]
         const queries = ECS.getQueryBySelector(system.selector)
-        for (const data of queries) {
-          if ((data.entityId in ECS.generatorState) && (systemName in ECS.generatorState[data.entityId])) {
-            const oldGenState = ECS.generatorState[data.entityId][systemName]
-            continueGenerator(oldGenState, data.entityId, systemName)
-          } else {
-            const generator = system.update(data as DataOf<typeof system.selector>);
-            continueGenerator(generator, data.entityId, systemName)
-          }
-        }
+        for (const data of queries) system.update(data as DataOf<typeof system.selector>)
       })
     }
   }
@@ -155,7 +136,7 @@ export abstract class System<S extends (abstract new (...args: any) => any)[]> {
   abstract name: System.Name
   abstract selector: S
 
-  abstract update(data: DataOf<S>): Generator<any>
+  abstract update(data: DataOf<S>): void
 }
 
 export namespace System {
@@ -174,13 +155,13 @@ type toObject<Orred extends WithTypeName> = {
 } & { entityId: EntityId }
 export type DataOf<S extends (abstract new (...args: any) => any)[]> = toObject<InstanceType<unwrapArray<S>>>
 
-export function registerSystem<S extends (abstract new (...args: any) => any)[]>(name: System.Name, selector: S, update: (query: DataOf<S>) => Generator<any>) {
+export function registerSystem<S extends (abstract new (...args: any) => any)[]>(name: System.Name, selector: S, update: (query: DataOf<S>) => any) {
   class OutSystem extends System<typeof selector> {
     name = name
     selector = selector
 
-    update(data: DataOf<S>): Generator<any> {
-      return update(data)
+    update(data: DataOf<S>): any {
+      update(data)
     }
   }
 
