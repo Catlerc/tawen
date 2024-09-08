@@ -42,9 +42,11 @@ export class SpawnOrder implements SpawnOrder {
 export class SpawnerComponent implements SpawnerComponent {
   queue: SpawnOrder[];
   spawner: StructureSpawn;
-  constructor(queue: SpawnOrder[], spawner: StructureSpawn, ) {
+  id: string;
+  constructor(queue: SpawnOrder[], spawner: StructureSpawn, id: string = Component.generateId(), ) {
     this.queue = queue;
     this.spawner = spawner;
+    this.id = id;
   }
   encode() {
     return JSON.stringify(this)
@@ -60,6 +62,7 @@ export class SpawnerComponent implements SpawnerComponent {
     return new SpawnerComponent(
       obj.queue.map((item:any) => SpawnOrder.fromObj(item)),
       Game.spawns[obj.spawner],
+      obj.id,
     )
   }
 }
@@ -70,7 +73,8 @@ registerSystem(
   "SpawnerSystem",
   [SpawnerComponent],
   query => {
-    console.log("kek")
+    console.log("kek", query.spawner.id, "SSSS")
+    query.spawner.id
     const toSpawn = query.spawner.queue.shift()
     if (toSpawn === undefined) return
     const res = query.spawner.spawner.spawnCreep(toSpawn.parts, toSpawn.creepName)

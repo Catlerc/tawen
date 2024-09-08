@@ -44,6 +44,7 @@ for (const fileName of fileNames) {
 
       const interfaceName = node.name.escapedText
       let members = []
+
       for (const member of node.members) {
         const memberName = member.name.escapedText
         const memberType = typeChecker.getTypeAtLocation(member)
@@ -58,6 +59,13 @@ for (const fileName of fileNames) {
 
       const isExport = (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0
       const tpe = getDataTypeType(node)
+
+      if (tpe === "Component") {
+        members.push({
+          name: "id", type: "string", isDataType: false, isArray: false, isId: true
+        })
+      }
+
       const intr = {
         name: interfaceName, members: members, isExport: isExport | tpe === "Component", tpe: tpe, fileName: fileName
       }
@@ -82,10 +90,14 @@ for (const fileName of fileNames) {
       generated += `  ${member.name}: ${member.type}${arrayPart};\n`
     }
     generated += "  constructor("
-
     for (const member of members) {
-      const arrayPart = member.isArray ? "[]" : ""
-      generated += `${member.name}: ${member.type}${arrayPart}, `
+
+      if (member.isId) {
+        generated += `${member.name}: ${member.type} = Component.generateId(), `
+      } else {
+        const arrayPart = member.isArray ? "[]" : ""
+        generated += `${member.name}: ${member.type}${arrayPart}, `
+      }
     }
     generated += ") {\n"
     for (const member of members) {

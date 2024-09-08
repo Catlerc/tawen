@@ -98,25 +98,29 @@ export class ECS {
 
   static saveCache(): void {
     Debug.time("saveCache", () => {
-      let res: ComponentMemory = {}
+      let res: ComponentCache = {}
       for (const componentName in ECS.componentsCache) {
         res[componentName] = {}
         for (const entityId in ECS.componentsCache[componentName]) {
-          res[componentName][entityId] = JSON.stringify(ECS.componentsCache[componentName][entityId]);
+          res[componentName][entityId] = ECS.componentsCache[componentName][entityId];
         }
       }
-      Memory.componentsMemory = res
-      Memory.entityIds = ECS.entities
+
+      RawMemory.set(JSON.stringify({
+        componentsMemory: res,
+        entityIds: ECS.entities
+      }))
     })
   }
 
   static loadCache(): void {
+    const memory = JSON.parse(RawMemory.get())
     Debug.time("loadCache", () => {
       let res: ComponentCache = {}
-      for (const componentName in Memory.componentsMemory) {
+      for (const componentName in memory.componentsMemory) {
         res[componentName] = {}
-        for (const entityId in Memory.componentsMemory[componentName]) {
-          const arr: any[] = JSON.parse(Memory.componentsMemory[componentName][entityId])
+        for (const entityId in memory.componentsMemory[componentName]) {
+          const arr: any[] = memory.componentsMemory[componentName][entityId]
           res[componentName][entityId] = arr.map(obj => {
             return ECS.components[componentName]!(obj)
           });
