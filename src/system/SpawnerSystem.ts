@@ -73,8 +73,6 @@ registerSystem(
   "SpawnerSystem",
   [SpawnerComponent],
   query => {
-    console.log("kek", query.spawner.id, "SSSS")
-    query.spawner.id
     const toSpawn = query.spawner.queue.shift()
     if (toSpawn === undefined) return
     const res = query.spawner.spawner.spawnCreep(toSpawn.parts, toSpawn.creepName)
