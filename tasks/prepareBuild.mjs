@@ -87,7 +87,8 @@ nestedFiles.forEach(file => {
       importRes = partsToName(importNorm)
     else
       importRes = partsToName(importNormLocal)
-    codeWithImports = replaceFromTo(codeWithImports, imprt.index, imprt.index + imprt.length, "./" + importRes)
+    const isGlobalImport = !value.startsWith("./")
+    codeWithImports = replaceFromTo(codeWithImports, imprt.index, imprt.index + imprt.length, (isGlobalImport ? "" : "./") + importRes)
   })
   writeFile(TMP_DIR + "/" + file.flattenName + "." + file.extension, codeWithImports)
 })

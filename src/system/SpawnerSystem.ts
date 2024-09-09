@@ -1,50 +1,81 @@
-import {registerSystem, System} from "../ECS";
+import {ECS, EntityId, registerSystem, System} from "../ECS";
 import {generateRandomHex} from "../utils";
 import {Component} from "../Component";
 import {DataType} from "../DataType";
 
-export interface SpawnOrder extends DataType {
+export interface SpawnOrderComponent extends Component {
   parts: BodyPartConstant[]
   creepName: string
+  parentEntity: EntityId
+}
+export interface SpawnOrderDoneComponent extends Component {
+  creep: Creep
 }
 
 export interface SpawnerComponent extends Component {
-  queue: SpawnOrder[],
   spawner: StructureSpawn,
 }
 
 
 //<editor-fold desc="Generated">
-export class SpawnOrder implements SpawnOrder {
+export class SpawnOrderComponent implements SpawnOrderComponent {
   parts: BodyPartConstant[];
   creepName: string;
-  constructor(parts: BodyPartConstant[], creepName: string, ) {
+  parentEntity: string;
+  id: string;
+  constructor(parts: BodyPartConstant[], creepName: string, parentEntity: string, id: string = Component.generateId(), ) {
     this.parts = parts;
     this.creepName = creepName;
+    this.parentEntity = parentEntity;
+    this.id = id;
   }
   encode() {
     return JSON.stringify(this)
   }
-  public get typeName(): "SpawnOrder" {
-    return "SpawnOrder"
+  public get typeName(): "SpawnOrderComponent" {
+    return "SpawnOrderComponent"
   }
-  static typeName = "SpawnOrder"
+  static typeName = "SpawnOrderComponent"
   static decode(json: string) {
-    return SpawnOrder.fromObj(JSON.parse(json))
+    return SpawnOrderComponent.fromObj(JSON.parse(json))
   }
   static fromObj(obj: any) {
-    return new SpawnOrder(
+    return new SpawnOrderComponent(
       obj.parts,
       obj.creepName,
+      obj.parentEntity,
+      obj.id,
+    )
+  }
+}
+export class SpawnOrderDoneComponent implements SpawnOrderDoneComponent {
+  creep: Creep;
+  id: string;
+  constructor(creep: Creep, id: string = Component.generateId(), ) {
+    this.creep = creep;
+    this.id = id;
+  }
+  encode() {
+    return JSON.stringify(this)
+  }
+  public get typeName(): "SpawnOrderDoneComponent" {
+    return "SpawnOrderDoneComponent"
+  }
+  static typeName = "SpawnOrderDoneComponent"
+  static decode(json: string) {
+    return SpawnOrderDoneComponent.fromObj(JSON.parse(json))
+  }
+  static fromObj(obj: any) {
+    return new SpawnOrderDoneComponent(
+      Game.creeps[obj.creep],
+      obj.id,
     )
   }
 }
 export class SpawnerComponent implements SpawnerComponent {
-  queue: SpawnOrder[];
   spawner: StructureSpawn;
   id: string;
-  constructor(queue: SpawnOrder[], spawner: StructureSpawn, id: string = Component.generateId(), ) {
-    this.queue = queue;
+  constructor(spawner: StructureSpawn, id: string = Component.generateId(), ) {
     this.spawner = spawner;
     this.id = id;
   }
@@ -60,7 +91,6 @@ export class SpawnerComponent implements SpawnerComponent {
   }
   static fromObj(obj: any) {
     return new SpawnerComponent(
-      obj.queue.map((item:any) => SpawnOrder.fromObj(item)),
       Game.spawns[obj.spawner],
       obj.id,
     )
@@ -71,14 +101,18 @@ export class SpawnerComponent implements SpawnerComponent {
 
 registerSystem(
   "SpawnerSystem",
-  [SpawnerComponent],
+  [SpawnerComponent, SpawnOrderComponent],
   query => {
-    const toSpawn = query.spawner.queue.shift()
-    if (toSpawn === undefined) return
-    const res = query.spawner.spawner.spawnCreep(toSpawn.parts, toSpawn.creepName)
-    if (res === OK) return;
+    const res = query.spawner.spawner.spawnCreep(query.spawnOrder.parts, query.spawnOrder.creepName)
+    if (res === OK) {
+      const spawning = query.spawner.spawner.spawning
+      console.log(spawning)
+      // ECS.getComponent(SpawnOrderComponent, query.spawnOrder.)
+      // ECS.addComponent(query.spawnOrder.parentEntity, new SpawnOrderDoneComponent(Game.creeps[spawning!.name]))
 
-    query.spawner.queue.push(toSpawn)
-    console.log("cannot spawn creep. code:"+res)
+      ECS.removeComponent(query.entityId, query.spawnOrder)
+      return;
+    } else
+      console.log("cannot spawn creep. code:" + res)
   }
 )

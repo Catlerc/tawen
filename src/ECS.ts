@@ -15,15 +15,15 @@ declare global {
   }
 }
 
-type Dict<K extends string, V> = {
-  [_ in K]: V;
-};
 
 export class ECS {
+  //registers
+  static systemRegistry: { [systemName: System.Name]: System<any> } = {}
+  static componentRegistry: { [componentName: Component.Name]: (obj: any) => Component } = {}
+
+  //actual data
   static entities: EntityId[] = [];
-  static systems: { [systemName: System.Name]: System<any> } = {}
-  static components: { [componentName: Component.Name]: (obj: any) => Component } = {}
-  static componentsCache: ComponentCache
+  static components: ComponentCache
 
   static addEntity(): EntityId {
     const id = generateRandomHex()
@@ -32,19 +32,34 @@ export class ECS {
   }
 
   static addComponent(entityId: EntityId, component: Component) {
-    if (!(component.typeName in ECS.componentsCache))
-      ECS.componentsCache[component.typeName] = {}
-    if (!(entityId in ECS.componentsCache[component.typeName]))
-      ECS.componentsCache[component.typeName][entityId] = []
-    ECS.componentsCache[component.typeName][entityId].push(component)
+    if (!(component.typeName in ECS.components))
+      ECS.components[component.typeName] = {}
+    if (!(entityId in ECS.components[component.typeName]))
+      ECS.components[component.typeName][entityId] = []
+    ECS.components[component.typeName][entityId].push(component)
+  }
+
+  static removeComponent(entityId: EntityId, component: Component) {
+    if (component.typeName in ECS.components && entityId in ECS.components[component.typeName])
+      ECS.components[component.typeName][entityId].filter((someComp) => someComp.id === component.id)
+  }
+
+  static getComponent(clazz: Component, id: Component.Id): Component | null {
+    if (clazz.typeName in ECS.components) {
+      for (const entityId in ECS.components[clazz.typeName]) {
+        for (const component of ECS.components[clazz.typeName][entityId])
+          if (component.id === id) return component;
+      }
+    }
+    return null
   }
 
   static registerSystem(system: System<any>): void {
-    ECS.systems[system.name] = system
+    ECS.systemRegistry[system.name] = system
   }
 
   static registerComponent(componentName: Component.Name, fromObj: (obj: any) => Component): void {
-    ECS.components[componentName] = fromObj
+    ECS.componentRegistry[componentName] = fromObj
   }
 
 
@@ -68,7 +83,7 @@ export class ECS {
     outer: for (const entityId of ECS.entities) {
       let query: { [key: string]: any } = {}
       for (const componentName of componentNames) {
-        const componentsOfThisEntity = ECS.componentsCache[componentName][entityId]
+        const componentsOfThisEntity = ECS.components[componentName][entityId]
         if (componentsOfThisEntity === undefined) continue outer; // not fully equipped entity
         query[ECS.shortenComponentName(componentName)] = componentsOfThisEntity[0]//TODO
         query.entityId = entityId
@@ -80,9 +95,9 @@ export class ECS {
   }
 
   static update(): void {
-    for (const systemName in ECS.systems) {
+    for (const systemName in ECS.systemRegistry) {
       Debug.time(systemName, () => {
-        const system = ECS.systems[systemName]
+        const system = ECS.systemRegistry[systemName]
         const queries = ECS.getQueryBySelector(system.selector)
         for (const data of queries) system.update(data as DataOf<typeof system.selector>)
       })
@@ -92,7 +107,7 @@ export class ECS {
   static saveCache(): void {
     Debug.time("saveCache", () => {
       RawMemory.set(JSON.stringify({
-        componentsMemory: ECS.componentsCache,
+        componentsMemory: ECS.components,
         entityIds: ECS.entities
       }))
     })
@@ -107,17 +122,27 @@ export class ECS {
         for (const entityId in memory.componentsMemory[componentName]) {
           const arr: any[] = memory.componentsMemory[componentName][entityId]
           res[componentName][entityId] = arr.map(obj => {
-            return ECS.components[componentName]!(obj)
+            return ECS.componentRegistry[componentName]!(obj)
           });
         }
       }
-      ECS.componentsCache = res
-      for (const componentName in ECS.components) {
-        if (ECS.componentsCache[componentName] === undefined)
-          ECS.componentsCache[componentName] = {}
+      ECS.components = res
+      for (const componentName in ECS.componentRegistry) {
+        if (ECS.components[componentName] === undefined)
+          ECS.components[componentName] = {}
       }
       ECS.entities = Memory.entityIds
     })
+  }
+
+  static purge() {
+    ECS.entities = []
+    ECS.components = {}
+    for (const componentName in ECS.componentRegistry) {
+      if (ECS.components[componentName] === undefined)
+        ECS.components[componentName] = {}
+    }
+    ECS.saveCache()
   }
 }
 
@@ -132,7 +157,7 @@ export namespace System {
   export type Name = string
 }
 
-type EntityId = string
+export type EntityId = string
 
 
 type WithTypeName = { typeName: string }

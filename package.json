@@ -10,9 +10,13 @@
     "cleanup": "node tasks/cleanup.mjs"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.7",
     "@types/screeps": "3.3.8",
     "@types/typescript": "^2.0.0",
     "typescript": "5.5.4"
   },
-  "private": true
+  "private": true,
+  "dependencies": {
+    "lodash": "3.10.1"
+  }
 }
