@@ -2,7 +2,8 @@ import "patches"
 import {System, ECS} from "./ECS";
 import "./ECSRegistry";
 import {Debug} from "./Debug";
-import "./ECS/systems"
+import "./ECS/system/creepFactory"
+import "./ECS/system/energyProduction"
 import {logError} from "./utils";
 
 function start() {
