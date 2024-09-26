@@ -1,0 +1,46 @@
+import {Component} from "../../Component";
+import {EntityId} from "../../ECS";
+
+export interface KnownSource extends Component {
+  source: Source
+  miner?: Creep
+  currier?: Creep
+}
+
+//<editor-fold desc="Generated">
+export class KnownSource implements KnownSource {
+  source: Source;
+  miner?: Creep;
+  currier?: Creep;
+  id: string;
+  constructor(source: Source, miner?: Creep, currier?: Creep, id: string = Component.generateId(), ) {
+    this.source = source;
+    this.miner = miner;
+    this.currier = currier;
+    this.id = id;
+  }
+  encode() {
+    return JSON.stringify(this)
+  }
+  public get typeName(): "KnownSource" {
+    return "KnownSource"
+  }
+  static typeName = "KnownSource"
+  static decode(json: string) {
+    return KnownSource.fromObj(JSON.parse(json))
+  }
+  static fromObj(obj: any) {
+    return new KnownSource(
+      obj.source,
+      obj.miner === undefined ? undefined : Game.creeps[obj.miner],
+      obj.currier === undefined ? undefined : Game.creeps[obj.currier],
+      obj.id,
+    )
+  }
+  reload() {
+    this.miner = this.miner === undefined ? undefined : Game.creeps[this.miner.name]
+    this.currier = this.currier === undefined ? undefined : Game.creeps[this.currier.name]
+  }
+}
+
+//</editor-fold>

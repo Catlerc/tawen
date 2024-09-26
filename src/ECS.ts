@@ -121,7 +121,12 @@ export class ECS {
     Debug.time("saveCache", () => {
       RawMemory.set(JSON.stringify({
         componentsMemory: ECS.components,
-        entityIds: ECS.entities
+        entityIds: ECS.entities,
+        creeps: Memory.creeps || {},
+        rooms: Memory.rooms || {},
+        flags: Memory.flags || {},
+        powerCreeps: Memory.powerCreeps || {},
+        spawns: Memory.spawns || {},
       }))
     })
   }

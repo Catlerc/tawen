@@ -50,10 +50,14 @@ for (const fileName of fileNames) {
         const memberType = typeChecker.getTypeAtLocation(member)
         const isArrayFlag = isArray(memberType)
         const isDataTypeFlag = isArrayFlag ? isDataTypeForType(memberType.resolvedTypeArguments[0]) : isDataTypeForType(memberType)
-
-        const memberTypeStr = isArrayFlag ? typeChecker.typeToString(memberType.resolvedTypeArguments[0]) : typeChecker.typeToString(memberType)
+        const isOptional = member.questionToken !== undefined
+        const memberTypeStr = isArrayFlag ? typeChecker.typeToString(memberType.resolvedTypeArguments[0]) : typeChecker.typeToString(memberType, ts.TypeFormatFlags.UseFullyQualifiedType | ts.InTypeAlias)
         members.push({
-          name: memberName, type: memberTypeStr, isDataType: isDataTypeFlag, isArray: isArrayFlag
+          name: memberName,
+          type: memberTypeStr,
+          isDataType: isDataTypeFlag,
+          isArray: isArrayFlag,
+          isOptional: isOptional
         })
       }
 
@@ -87,16 +91,16 @@ for (const fileName of fileNames) {
 
     for (const member of members) {
       const arrayPart = member.isArray ? "[]" : ""
-      generated += `  ${member.name}: ${member.type}${arrayPart};\n`
+      generated += `  ${member.name}${member.isOptional ? "?" : ""}: ${member.type}${arrayPart};\n`
     }
     generated += "  constructor("
     for (const member of members) {
 
       if (member.isId) {
-        generated += `${member.name}: ${member.type} = Component.generateId(), `
+        generated += `${member.name}${member.isOptional ? "?" : ""}: ${member.type} = Component.generateId(), `
       } else {
         const arrayPart = member.isArray ? "[]" : ""
-        generated += `${member.name}: ${member.type}${arrayPart}, `
+        generated += `${member.name}${member.isOptional ? "?" : ""}: ${member.type}${arrayPart}, `
       }
     }
     generated += ") {\n"
@@ -137,7 +141,12 @@ for (const fileName of fileNames) {
       else if (member.type in decoderMapper) {
         const decoder = decoderMapper[member.type]
         if (member.isArray)
-          generated += `      obj.${member.name}.map((item:any) => ${decoder("item")}),\n`
+          if (member.isOptional)
+            generated += `      obj.${member.name}.map((item:any) => item === undefined ? undefined : ${decoder("item")}),\n`
+          else
+            generated += `      obj.${member.name}.map((item:any) => ${decoder("item")}),\n`
+        else if (member.isOptional)
+          generated += `      obj.${member.name} === undefined ? undefined : ${decoder(`obj.${member.name}`)},\n`
         else
           generated += `      ${decoder(`obj.${member.name}`)},\n`
       } else
@@ -151,7 +160,12 @@ for (const fileName of fileNames) {
       if (member.type in decoderMapper) {
         const decoder = decoderMapper[member.type]
         if (member.isArray)
-          generated += `    this.${member.name} = this.${member.name}.map((item:any) => ${decoder("item.name")})\n`
+          if (member.isOptional)
+            generated += `    this.${member.name} = this.${member.name}.map((item:any) => item === undefined ? undefined :  ${decoder("item.name")})\n`
+          else
+            generated += `    this.${member.name} = this.${member.name}.map((item:any) => ${decoder("item.name")})\n`
+        else if (member.isOptional)
+          generated += `    this.${member.name} = this.${member.name} === undefined ? undefined : ${decoder(`this.${member.name}.name`)}\n`
         else
           generated += `    this.${member.name} = ${decoder(`this.${member.name}.name`)}\n`
       }
@@ -186,6 +200,7 @@ for (const fileName of fileNames) {
 
 let registryGenerated = ""
 registryGenerated += `import {Component} from "./Component";\n`
+registryGenerated += `\n// ITS ALL GENERATED!\n\n`
 for (const intr of allInterfaces) {
   if (intr.tpe === "Component") {
     const importPath = intr.fileName.slice(SRC.length + 1, -3)

@@ -1,7 +1,7 @@
-import {ECS, registerSystem} from "../ECS";
-import {Spawns, SpawnOrder, SpawnOrderInProgress, FreeCreep} from "./data";
+import {ECS, registerSystem} from "../../ECS";
+import {Spawns, SpawnOrder, SpawnOrderInProgress, FreeCreep} from "../data/spawn";
 import * as _ from "lodash";
-import {mapError, logError,logInfo} from "../utils";
+import {mapError, logError,logInfo} from "../../utils";
 
 
 
