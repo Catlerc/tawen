@@ -95,8 +95,8 @@ export class ECS {
           break
         } // not fully equipped entity
         query[ECS.shortenComponentName(componentName)] = componentsOfThisEntity[0]//TODO
-        query.entityId = entityId
       }
+      query.entityId = entityId
       if (goodEntity) res.push(query)
     }
     return res
@@ -107,7 +107,12 @@ export class ECS {
       Debug.time(systemName, () => {
         const system = ECS.systemRegistry[systemName]
         const queries = ECS.getQueryBySelector(system.selector)
-        for (const data of queries) system.update(data as DataOf<typeof system.selector>)
+        for (const data of queries) {
+          for (const key in data) {
+            data[key].reload?.()
+          }
+          system.update(data as DataOf<typeof system.selector>)
+        }
       })
     }
   }

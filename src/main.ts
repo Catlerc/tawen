@@ -1,4 +1,4 @@
-import "proto"
+import "patches"
 import {System, ECS} from "./ECS";
 import "./ECSRegistry";
 import {Debug} from "./Debug";

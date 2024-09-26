@@ -104,16 +104,21 @@ for (const fileName of fileNames) {
       generated += `    this.${member.name} = ${member.name};\n`
     }
     generated += "  }\n"
+    // encode
     generated += "  encode() {\n"
     generated += "    return JSON.stringify(this)\n"
     generated += "  }\n"
+    // function typeName
     generated += `  public get typeName(): "${name}" {\n`
     generated += `    return "${name}"\n`
     generated += "  }\n"
+    // constant typeName
     generated += `  static typeName = "${name}"\n`
+    // decode
     generated += "  static decode(json: string) {\n"
     generated += `    return ${name}.fromObj(JSON.parse(json))\n`
     generated += "  }\n"
+    // fromObj
     generated += "  static fromObj(obj: any) {\n"
     generated += `    return new ${name}(\n`
 
@@ -122,8 +127,8 @@ for (const fileName of fileNames) {
       "StructureSpawn": (x) => `Game.spawns[${x}]`,
       "Creep": (x) => `Game.creeps[${x}]`
     }
-    members.forEach(member => {
 
+    for (const member of members) {
       if (member.isDataType)
         if (member.isArray)
           generated += `      obj.${member.name}.map((item:any) => ${member.type}.fromObj(item)),\n`
@@ -137,9 +142,22 @@ for (const fileName of fileNames) {
           generated += `      ${decoder(`obj.${member.name}`)},\n`
       } else
         generated += `      obj.${member.name},\n`
-    })
+    }
     generated += "    )\n"
     generated += "  }\n"
+    // reload
+    generated += "  reload() {\n"
+    for (const member of members) {
+      if (member.type in decoderMapper) {
+        const decoder = decoderMapper[member.type]
+        if (member.isArray)
+          generated += `    this.${member.name} = this.${member.name}.map((item:any) => ${decoder("item.name")})\n`
+        else
+          generated += `    this.${member.name} = ${decoder(`this.${member.name}.name`)}\n`
+      }
+    }
+    generated += "  }\n"
+    // end
     generated += "}\n"
   }
   // SAVE

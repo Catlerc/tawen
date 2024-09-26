@@ -10,10 +10,10 @@ export function initRoom(roomName: string) {
 
   const spawns = room.find(FIND_MY_SPAWNS)
 
-  const spawnerSystem = ECS.createEntity()
-  ECS.addComponent(spawnerSystem, new Spawns(spawns))
-  ECS.addComponent(spawnerSystem, new RoomLink(room))
+  const spawner = ECS.createEntity()
+  ECS.addComponent(spawner, new Spawns(spawns))
+  ECS.addComponent(spawner, new RoomLink(room))
 
-  ECS.addComponent(spawnerSystem, new SpawnOrder([WORK, MOVE, CARRY], generateRandomHex(), "kek"))
+  ECS.addComponent(spawner, new SpawnOrder([WORK, MOVE, CARRY], generateRandomHex(), "kek"))
   return "Ok"
 }

@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "npm run gen & npm run prepare & tsc -b",
+    "build": "npm run gen & npm run prepare & tsc -b & npm run cleanup",
     "prepare": "node tasks/prepareBuild.mjs",
     "gen": "node tasks/structGenerator.mjs",
     "cleanup": "node tasks/cleanup.mjs"

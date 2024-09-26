@@ -1,7 +1,7 @@
 import {ECS, registerSystem} from "../ECS";
 import {Spawns, SpawnOrder, SpawnOrderInProgress, FreeCreep} from "./data";
 import * as _ from "lodash";
-import {mapError, logError} from "../utils";
+import {mapError, logError,logInfo} from "../utils";
 
 
 
@@ -9,8 +9,6 @@ registerSystem(
   "CreepFactoryOutbox",
   [Spawns, SpawnOrderInProgress],
   query => {
-
-    console.log("kek WIP ", query.spawnOrderInProgress.spawn.spawning)
     if (query.spawnOrderInProgress.spawn.spawning === null) {
       ECS.removeComponent(query.entityId, query.spawnOrderInProgress)
       ECS.addComponent(query.spawnOrderInProgress.parentEntity, new FreeCreep(Game.creeps[query.spawnOrderInProgress.creepName]))
@@ -26,6 +24,7 @@ registerSystem(
 
     const freeSpawn = _.find(query.spawns.spawns, spawn => spawn.spawning === null)
     if (freeSpawn) {
+      logInfo(query.spawnOrder.parts)
       const res = freeSpawn.spawnCreep(query.spawnOrder.parts, query.spawnOrder.creepName)
       if (res === OK) {
         ECS.removeComponent(query.entityId, query.spawnOrder)

@@ -56,6 +56,8 @@ export class SpawnOrder implements SpawnOrder {
       obj.id,
     )
   }
+  reload() {
+  }
 }
 export class FreeCreep implements FreeCreep {
   creep: Creep;
@@ -79,6 +81,9 @@ export class FreeCreep implements FreeCreep {
       Game.creeps[obj.creep],
       obj.id,
     )
+  }
+  reload() {
+    this.creep = Game.creeps[this.creep.name]
   }
 }
 export class Spawns implements Spawns {
@@ -104,6 +109,9 @@ export class Spawns implements Spawns {
       obj.id,
     )
   }
+  reload() {
+    this.spawns = this.spawns.map((item:any) => Game.spawns[item.name])
+  }
 }
 export class RoomLink implements RoomLink {
   room: Room;
@@ -127,6 +135,9 @@ export class RoomLink implements RoomLink {
       Game.rooms[obj.room],
       obj.id,
     )
+  }
+  reload() {
+    this.room = Game.rooms[this.room.name]
   }
 }
 export class SpawnOrderInProgress implements SpawnOrderInProgress {
@@ -157,6 +168,9 @@ export class SpawnOrderInProgress implements SpawnOrderInProgress {
       Game.spawns[obj.spawn],
       obj.id,
     )
+  }
+  reload() {
+    this.spawn = Game.spawns[this.spawn.name]
   }
 }
 
