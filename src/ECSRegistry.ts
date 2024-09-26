@@ -1,7 +1,11 @@
 import {Component} from "./Component";
-import {SpawnOrderComponent} from "./system/SpawnerSystem";
-Component.ECSRef.registerComponent("SpawnOrderComponent", SpawnOrderComponent.fromObj)
-import {SpawnOrderDoneComponent} from "./system/SpawnerSystem";
-Component.ECSRef.registerComponent("SpawnOrderDoneComponent", SpawnOrderDoneComponent.fromObj)
-import {SpawnerComponent} from "./system/SpawnerSystem";
-Component.ECSRef.registerComponent("SpawnerComponent", SpawnerComponent.fromObj)
+import {SpawnOrder} from "./ECS/data";
+Component.ECSRef.registerComponent("SpawnOrder", SpawnOrder.fromObj)
+import {FreeCreep} from "./ECS/data";
+Component.ECSRef.registerComponent("FreeCreep", FreeCreep.fromObj)
+import {Spawns} from "./ECS/data";
+Component.ECSRef.registerComponent("Spawns", Spawns.fromObj)
+import {RoomLink} from "./ECS/data";
+Component.ECSRef.registerComponent("RoomLink", RoomLink.fromObj)
+import {SpawnOrderInProgress} from "./ECS/data";
+Component.ECSRef.registerComponent("SpawnOrderInProgress", SpawnOrderInProgress.fromObj)

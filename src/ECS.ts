@@ -1,6 +1,7 @@
 import {generateRandomHex} from "./utils";
 import {Component} from "./Component";
 import {Debug} from "./Debug";
+import * as _ from "lodash";
 
 declare global {
   type ComponentCache = {
@@ -25,7 +26,7 @@ export class ECS {
   static entities: EntityId[] = [];
   static components: ComponentCache
 
-  static addEntity(): EntityId {
+  static createEntity(): EntityId {
     const id = generateRandomHex()
     ECS.entities.push(id)
     return id
@@ -40,8 +41,11 @@ export class ECS {
   }
 
   static removeComponent(entityId: EntityId, component: Component) {
-    if (component.typeName in ECS.components && entityId in ECS.components[component.typeName])
-      ECS.components[component.typeName][entityId].filter((someComp) => someComp.id === component.id)
+    if (component.typeName in ECS.components && entityId in ECS.components[component.typeName]) {
+      ECS.components[component.typeName][entityId] = ECS.components[component.typeName][entityId].filter((someComp) => someComp.id !== component.id)
+      if (ECS.components[component.typeName][entityId].length === 0)
+        delete ECS.components[component.typeName][entityId]
+    }
   }
 
   static getComponent(clazz: Component, id: Component.Id): Component | null {
@@ -74,22 +78,26 @@ export class ECS {
   }
 
   private static shortenComponentName(fullName: string) {
-    return ECS.uncapitalizeFirstLetter(fullName.slice(0, -("Component".length)))
+    const comp = "Component"
+    return ECS.uncapitalizeFirstLetter(fullName.endsWith(comp) ? fullName.slice(0, -(comp.length)) : fullName)
   }
 
   static getQueryBySelector(selector: Component[]) {
     const componentNames = selector.map(comp => comp.typeName)
     let res = []
-    outer: for (const entityId of ECS.entities) {
+    for (const entityId of ECS.entities) {
       let query: { [key: string]: any } = {}
+      let goodEntity = true
       for (const componentName of componentNames) {
         const componentsOfThisEntity = ECS.components[componentName][entityId]
-        if (componentsOfThisEntity === undefined) continue outer; // not fully equipped entity
+        if (componentsOfThisEntity === undefined || componentsOfThisEntity.length == 0) {
+          goodEntity = false
+          break
+        } // not fully equipped entity
         query[ECS.shortenComponentName(componentName)] = componentsOfThisEntity[0]//TODO
         query.entityId = entityId
-        res.push(query)
       }
-
+      if (goodEntity) res.push(query)
     }
     return res
   }
@@ -163,7 +171,7 @@ export type EntityId = string
 type WithTypeName = { typeName: string }
 type getTypeNameOfDataType<C> = C extends { typeName: infer T } ? T : never
 type unwrapArray<Array> = Array extends (infer Elem)[] ? Elem : never
-type removeJunk<String> = String extends `${infer A}Component` ? A : never
+type removeJunk<String> = String extends `${infer A}Component` ? A : String
 type toObject<Orred extends WithTypeName> = {
   [Property in Orred as Uncapitalize<removeJunk<getTypeNameOfDataType<Property>>>]: Property
 } & { entityId: EntityId }

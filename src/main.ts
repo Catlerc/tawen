@@ -2,13 +2,18 @@ import "proto"
 import {System, ECS} from "./ECS";
 import "./ECSRegistry";
 import {Debug} from "./Debug";
-import {drawRate} from "./Statist";
-import * as _ from "lodash";
+import "./ECS/systems"
+import {logError} from "./utils";
 
 function start() {
-  _.filter([], a=>true)
   console.log("starting...");
-  ECS.start()
+  try {
+    ECS.start()
+  } catch (e) {
+    logError("ERROR", e)
+    logError("PURGE")
+    ECS.purge()
+  }
 }
 
 function update() {

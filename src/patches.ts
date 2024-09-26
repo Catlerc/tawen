@@ -1,4 +1,5 @@
 import {ECS} from "./ECS"
+import {initRoom} from "./ECS/commands";
 
 // @ts-ignore
 Room.prototype.toJSON = function () {
@@ -19,3 +20,6 @@ declare global {
 
 
 global.purge = ECS.purge
+global.ECS = ECS
+global.initRoom = initRoom
+global.kill = false

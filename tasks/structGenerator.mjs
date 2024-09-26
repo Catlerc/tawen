@@ -132,7 +132,7 @@ for (const fileName of fileNames) {
       else if (member.type in decoderMapper) {
         const decoder = decoderMapper[member.type]
         if (member.isArray)
-          generated += `      obj.${member.name}.map((item:any) => ${decoder("item")}),,\n`
+          generated += `      obj.${member.name}.map((item:any) => ${decoder("item")}),\n`
         else
           generated += `      ${decoder(`obj.${member.name}`)},\n`
       } else

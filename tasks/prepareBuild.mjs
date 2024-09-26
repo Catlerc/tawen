@@ -6,7 +6,7 @@ const SRC_DIR = "./src"
 const TMP_DIR = "./_tmp"
 const DIST_DIR = "./dist"
 
-const importRegEx = /from(\s+)"(.+?)"/g
+const importRegEx = /(from|import)(\s+)"(.+?)"/g
 
 function findMatches(regex, str) {
   return [...str.matchAll(regex)]
@@ -17,18 +17,16 @@ function getImports(code) {
   let matches = findMatches(importRegEx, code)
   matches.forEach(match => {
     imports.push({
-      index: match.index + 5 + match[1].length, //5 because 'from' and " in regex
-      length: match[2].length,
-      value: match[2]
+      index: match.index + 1 + match[2].length + match[1].length, //5 because 'from' and " in regex
+      length: match[3].length,
+      value: match[3]
     })
   })
   return imports.reverse()
 }
 
 
-
-
-function shortenPath(pathParts){
+function shortenPath(pathParts) {
   let res = []
   pathParts.forEach(part => {
     switch (part) {
@@ -43,7 +41,6 @@ function shortenPath(pathParts){
   })
   return res
 }
-
 
 
 // fs.rmSync(DIST_DIR, { recursive: true })
@@ -68,7 +65,6 @@ if (fs.existsSync(TMP_DIR)) fs.rmSync(TMP_DIR, {recursive: true})
 fs.mkdirSync(TMP_DIR)
 
 
-
 nestedFiles.forEach(file => {
   const code = readFile(file.path)
   const imports = getImports(code)
@@ -83,7 +79,7 @@ nestedFiles.forEach(file => {
 
     let importRes
     const path = SRC_DIR + "/" + importNorm.join("/")
-    if (fs.existsSync( path + ".ts") || fs.existsSync( path + ".js"))
+    if (fs.existsSync(path + ".ts") || fs.existsSync(path + ".js"))
       importRes = partsToName(importNorm)
     else
       importRes = partsToName(importNormLocal)
