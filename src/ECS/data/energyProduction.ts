@@ -1,14 +1,16 @@
 import {Component} from "../../Component";
 import {EntityId} from "../../ECS";
 
-export interface KnownSource extends Component {
+export interface SourceLine extends Component {
   source: Source
   miner?: Creep
   currier?: Creep
 }
 
+
+
 //<editor-fold desc="Generated">
-export class KnownSource implements KnownSource {
+export class SourceLine implements SourceLine {
   source: Source;
   miner?: Creep;
   currier?: Creep;
@@ -22,15 +24,15 @@ export class KnownSource implements KnownSource {
   encode() {
     return JSON.stringify(this)
   }
-  public get typeName(): "KnownSource" {
-    return "KnownSource"
+  public get typeName(): "SourceLine" {
+    return "SourceLine"
   }
-  static typeName = "KnownSource"
+  static typeName = "SourceLine"
   static decode(json: string) {
-    return KnownSource.fromObj(JSON.parse(json))
+    return SourceLine.fromObj(JSON.parse(json))
   }
   static fromObj(obj: any) {
-    return new KnownSource(
+    return new SourceLine(
       obj.source,
       obj.miner === undefined ? undefined : Game.creeps[obj.miner],
       obj.currier === undefined ? undefined : Game.creeps[obj.currier],

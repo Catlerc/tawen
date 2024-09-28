@@ -1,6 +1,6 @@
 import {ECS} from "../ECS";
 import {RoomLink} from "./data";
-import {Spawns, SpawnOrder} from "./data/spawn";
+import {Spawns, SpawnOrder} from "./data/creepFactory";
 import {generateRandomHex} from "../utils";
 
 

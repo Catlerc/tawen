@@ -1,17 +1,18 @@
 import {ECS, registerSystem} from "../../ECS";
-import {Spawns, SpawnOrder, SpawnOrderInProgress, FreeCreep} from "../data/spawn";
+import {Spawns, SpawnOrder, SpawnOrderInProgress} from "../data/creepFactory";
+import {CreepLink} from "../data";
 import * as _ from "lodash";
-import {mapError, logError,logInfo} from "../../utils";
-
+import {mapError, logError, logInfo} from "../../utils";
+import {one} from "../../ComponentSelector";
 
 
 registerSystem(
   "CreepFactoryOutbox",
-  [Spawns, SpawnOrderInProgress],
+  one(Spawns).one(SpawnOrderInProgress),
   query => {
     if (query.spawnOrderInProgress.spawn.spawning === null) {
       ECS.removeComponent(query.entityId, query.spawnOrderInProgress)
-      ECS.addComponent(query.spawnOrderInProgress.parentEntity, new FreeCreep(Game.creeps[query.spawnOrderInProgress.creepName]))
+      ECS.addComponent(query.spawnOrderInProgress.parentEntity, new CreepLink(Game.creeps[query.spawnOrderInProgress.creepName]))
       console.log("DONE ", query.spawnOrderInProgress.creepName, "  " + Game.creeps[query.spawnOrderInProgress.creepName])
     }
   }
@@ -19,7 +20,7 @@ registerSystem(
 
 registerSystem(
   "CreepFactory",
-  [Spawns, SpawnOrder],
+  one(Spawns).one(SpawnOrder),
   query => {
 
     const freeSpawn = _.find(query.spawns.spawns, spawn => spawn.spawning === null)

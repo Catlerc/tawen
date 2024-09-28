@@ -7,10 +7,6 @@ export interface SpawnOrder extends Component {
   parentEntity: EntityId
 }
 
-export interface FreeCreep extends Component {
-  creep: Creep
-}
-
 export interface Spawns extends Component {
   spawns: StructureSpawn[],
 }
@@ -51,33 +47,6 @@ export class SpawnOrder implements SpawnOrder {
     )
   }
   reload() {
-  }
-}
-export class FreeCreep implements FreeCreep {
-  creep: Creep;
-  id: string;
-  constructor(creep: Creep, id: string = Component.generateId(), ) {
-    this.creep = creep;
-    this.id = id;
-  }
-  encode() {
-    return JSON.stringify(this)
-  }
-  public get typeName(): "FreeCreep" {
-    return "FreeCreep"
-  }
-  static typeName = "FreeCreep"
-  static decode(json: string) {
-    return FreeCreep.fromObj(JSON.parse(json))
-  }
-  static fromObj(obj: any) {
-    return new FreeCreep(
-      Game.creeps[obj.creep],
-      obj.id,
-    )
-  }
-  reload() {
-    this.creep = Game.creeps[this.creep.name]
   }
 }
 export class Spawns implements Spawns {

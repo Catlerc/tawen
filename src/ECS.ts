@@ -1,5 +1,6 @@
 import {generateRandomHex} from "./utils";
 import {Component} from "./Component";
+import {SelectorSet, SelectASTToObj} from "./ComponentSelector";
 import {Debug} from "./Debug";
 import * as _ from "lodash";
 
@@ -40,6 +41,14 @@ export class ECS {
     ECS.components[component.typeName][entityId].push(component)
   }
 
+
+  static getComponentList(entityId: EntityId, componentName: string): Component[] {
+    if (ECS.components[componentName] === undefined) return [];
+    const componentsOfThisEntity = ECS.components[componentName][entityId]
+    if (componentsOfThisEntity === undefined) return []
+    return componentsOfThisEntity
+  }
+
   static removeComponent(entityId: EntityId, component: Component) {
     if (component.typeName in ECS.components && entityId in ECS.components[component.typeName]) {
       ECS.components[component.typeName][entityId] = ECS.components[component.typeName][entityId].filter((someComp) => someComp.id !== component.id)
@@ -73,45 +82,16 @@ export class ECS {
     ECS.loadCache()
   }
 
-  private static uncapitalizeFirstLetter(str: string): string {
-    return str.charAt(0).toLowerCase() + str.slice(1);
-  }
-
-  private static shortenComponentName(fullName: string) {
-    const comp = "Component"
-    return ECS.uncapitalizeFirstLetter(fullName.endsWith(comp) ? fullName.slice(0, -(comp.length)) : fullName)
-  }
-
-  static getQueryBySelector(selector: Component[]) {
-    const componentNames = selector.map(comp => comp.typeName)
-    let res = []
-    for (const entityId of ECS.entities) {
-      let query: { [key: string]: any } = {}
-      let goodEntity = true
-      for (const componentName of componentNames) {
-        const componentsOfThisEntity = ECS.components[componentName][entityId]
-        if (componentsOfThisEntity === undefined || componentsOfThisEntity.length == 0) {
-          goodEntity = false
-          break
-        } // not fully equipped entity
-        query[ECS.shortenComponentName(componentName)] = componentsOfThisEntity[0]//TODO
-      }
-      query.entityId = entityId
-      if (goodEntity) res.push(query)
-    }
-    return res
-  }
-
   static update(): void {
     for (const systemName in ECS.systemRegistry) {
       Debug.time(systemName, () => {
         const system = ECS.systemRegistry[systemName]
-        const queries = ECS.getQueryBySelector(system.selector)
+        const queries = system.selector.select()
         for (const data of queries) {
           for (const key in data) {
-            data[key].reload?.()
+            (data as any)[key].reload?.()
           }
-          system.update(data as DataOf<typeof system.selector>)
+          system.update(data)
         }
       })
     }
@@ -164,11 +144,11 @@ export class ECS {
   }
 }
 
-export abstract class System<S extends (abstract new (...args: any) => any)[]> {
+export abstract class System<S> {
   abstract name: System.Name
-  abstract selector: S
+  abstract selector: SelectorSet<S>
 
-  abstract update(data: DataOf<S>): void
+  abstract update(data: SelectASTToObj<S>): void
 }
 
 export namespace System {
@@ -187,12 +167,12 @@ type toObject<Orred extends WithTypeName> = {
 } & { entityId: EntityId }
 export type DataOf<S extends (abstract new (...args: any) => any)[]> = toObject<InstanceType<unwrapArray<S>>>
 
-export function registerSystem<S extends (abstract new (...args: any) => any)[]>(name: System.Name, selector: S, update: (query: DataOf<S>) => any) {
-  class OutSystem extends System<typeof selector> {
+export function registerSystem<S>(name: System.Name, selector: SelectorSet<S>, update: (query: SelectASTToObj<S>) => any) {
+  class OutSystem extends System<S> {
     name = name
     selector = selector
 
-    update(data: DataOf<S>): any {
+    update(data: SelectASTToObj<S>): any {
       update(data)
     }
   }

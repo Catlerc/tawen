@@ -200,7 +200,7 @@ for (const fileName of fileNames) {
 
 let registryGenerated = ""
 registryGenerated += `import {Component} from "./Component";\n`
-registryGenerated += `\n// ITS ALL GENERATED!\n\n`
+registryGenerated += `\n// IT'S ALL GENERATED!\n\n`
 for (const intr of allInterfaces) {
   if (intr.tpe === "Component") {
     const importPath = intr.fileName.slice(SRC.length + 1, -3)

@@ -9,6 +9,13 @@ export interface RoomLink extends Component {
 
 
 
+export interface CreepLink extends Component {
+  creep: Creep
+}
+
+
+
+
 //<editor-fold desc="Generated">
 export class RoomLink implements RoomLink {
   room: Room;
@@ -35,6 +42,33 @@ export class RoomLink implements RoomLink {
   }
   reload() {
     this.room = Game.rooms[this.room.name]
+  }
+}
+export class CreepLink implements CreepLink {
+  creep: Creep;
+  id: string;
+  constructor(creep: Creep, id: string = Component.generateId(), ) {
+    this.creep = creep;
+    this.id = id;
+  }
+  encode() {
+    return JSON.stringify(this)
+  }
+  public get typeName(): "CreepLink" {
+    return "CreepLink"
+  }
+  static typeName = "CreepLink"
+  static decode(json: string) {
+    return CreepLink.fromObj(JSON.parse(json))
+  }
+  static fromObj(obj: any) {
+    return new CreepLink(
+      Game.creeps[obj.creep],
+      obj.id,
+    )
+  }
+  reload() {
+    this.creep = Game.creeps[this.creep.name]
   }
 }
 
